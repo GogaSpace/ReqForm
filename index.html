@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ფასდაკლების/ქეშბექის მოთხოვნა</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    textarea {
+      height: 140px;
+      resize: vertical;
+    }
+
+    .note {
+      font-size: 13px;
+      color: #555;
+      font-style: italic;
+      margin-top: 5px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        margin: 10px;
+        padding: 15px;
+      }
+
+      input, select, textarea, button {
+        font-size: 15px;
+      }
+    }
+
+    .radio-group label {
+      display: inline-block;
+      margin-right: 15px;
+      font-weight: normal;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>ფასდაკლების/ქეშბექის მოთხოვნა</h2>
+
+    <form id="infoForm" onsubmit="event.preventDefault(); generateText();">
+      <label>დასახელება:</label>
+      <input type="text" id="name" required />
+
+      <label>კოდი:</label>
+      <input type="text" id="code" required maxlength="11" oninput="validateCode()" />
+      <div id="codeError" class="note" style="color: red; display: none;"></div>
+
+      <label>მისამართი:</label>
+      <input type="text" id="address" required />
+
+      <label>ტელეფონის ნომერი:</label>
+      <input type="text" id="phone" required maxlength="9" oninput="validatePhone()" />
+      <div id="phoneError" class="note" style="color: red; display: none;"></div>
+
+      <label>ახალი კლიენტია?</label>
+      <div class="radio-group">
+        <label>
+          <input type="radio" name="isNewClient" value="დიახ" required />
+          დიახ
+        </label>
+        <label>
+          <input type="radio" name="isNewClient" value="არა" />
+          არა
+        </label>
+        <div class="note">(კლიენტები რომლებიც 2 თვეზე ნაკლებია რაც ჩავსვით)</div>
+      </div>
+
+      <label>რას ვითხოვთ?:</label>
+      <select id="request" required onchange="handleRequestChange()">
+        <option value="" disabled selected>აირჩიე მოთხოვნა</option>
+        <option value="250 ლარის პროდუქციის სანაცვლოდ მაცივრის დადგმა">250 ლარის პროდუქციის სანაცვლოდ მაცივრის დადგმა</option>
+        <option value="ქეშბექი">ქეშბექი</option>
+        <option value="ფასდაკლება">ფასდაკლება</option>
+        <option value="სხვა">სხვა</option>
+      </select>
+
+      <div id="percentField" class="hidden">
+        <label>რამდენი პროცენტი?:</label>
+        <input type="number" id="percent" min="1" max="100" />
+      </div>
+
+      <div id="otherInfoField" class="hidden">
+        <label>სხვა ინფორმაცია:</label>
+        <input type="text" id="otherInfo" />
+      </div>
+
+      <label>ვადა:</label>
+      <select id="deadline" required>
+        <option value="" disabled selected>აირჩიე ვადა</option>
+        <option value="1 წელი">1 წელი</option>
+        <option value="2 წელი">2 წელი</option>
+        <option value="3 წელი">3 წელი</option>
+        <option value="4 წელი">4 წელი</option>
+        <option value="5 წელი">5 წელი</option>
+      </select>
+
+      <label>შენიშვნა (არასავალდებულო):</label>
+      <input type="text" id="note" />
+
+      <button type="submit">შექმენი ტექსტი</button>
+    </form>
+
+    <label style="margin-top: 25px;">შედეგი:</label>
+    <textarea id="output" readonly></textarea>
+    <button onclick="copyText()">დაკოპირება</button>
+  </div>
+
+  <script>
+    function validateCode() {
+      const codeInput = document.getElementById("code");
+      const errorDiv = document.getElementById("codeError");
+      codeInput.value = codeInput.value.replace(/[^0-9]/g, '');
+
+      const length = codeInput.value.length;
+
+      if (length === 0) {
+        errorDiv.style.display = "none";
+        return;
+      }
+
+      if (length !== 9 && length !== 11) {
+        errorDiv.textContent = "თუ შპს-ა, შეიყვანე 9 ციფრი, თუ ინდ. მეწარმეა — 11 ციფრი";
+        errorDiv.style.display = "block";
+      } else {
+        errorDiv.style.display = "none";
+      }
+    }
+
+    function validatePhone() {
+      const phoneInput = document.getElementById("phone");
+      const phoneError = document.getElementById("phoneError");
+      phoneInput.value = phoneInput.value.replace(/[^0-9]/g, '');
+
+      if (phoneInput.value.length === 0) {
+        phoneError.style.display = "none";
+        return;
+      }
+
+      if (phoneInput.value.length !== 9) {
+        phoneError.textContent = "ტელეფონის ნომერი აუცილებლად უნდა იყოს 9 ციფრი, მაგ.: 595123456";
+        phoneError.style.display = "block";
+      } else {
+        phoneError.style.display = "none";
+      }
+    }
+
+    function handleRequestChange() {
+      const request = document.getElementById('request').value;
+      const percentField = document.getElementById('percentField');
+      const otherField = document.getElementById('otherInfoField');
+
+      percentField.classList.add('hidden');
+      otherField.classList.add('hidden');
+
+      if (request === 'ქეშბექი' || request === 'ფასდაკლება') {
+        percentField.classList.remove('hidden');
+      }
+      if (request === 'სხვა') {
+        otherField.classList.remove('hidden');
+      }
+    }
+
+    function generateText() {
+      const name = document.getElementById('name').value.trim();
+      const code = document.getElementById('code').value.trim();
+      const address = document.getElementById('address').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const isNew = document.querySelector('input[name="isNewClient"]:checked')?.value || "არ არის მითითებული";
+      const request = document.getElementById('request').value;
+      const percent = document.getElementById('percent').value.trim();
+      const otherInfo = document.getElementById('otherInfo').value.trim();
+      const deadline = document.getElementById('deadline').value;
+      const note = document.getElementById('note').value.trim();
+
+      if (code.length !== 9 && code.length !== 11) {
+        alert("შეიყვანე სწორი კოდი: 9 ციფრი შპს-ისთვის ან 11 ინდ. მეწარმისთვის");
+        return;
+      }
+
+      if (phone.length !== 9) {
+        alert("ტელეფონის ნომერი აუცილებლად უნდა იყოს 9 ციფრი, მაგ.: 595123456");
+        return;
+      }
+
+      let requestText = request;
+      if ((request === "ქეშბექი" || request === "ფასდაკლება") && percent) {
+        requestText += ` (${percent}%)`;
+      }
+      if (request === "სხვა" && otherInfo) {
+        requestText += ` - ${otherInfo}`;
+      }
+
+      let result = `დასახელება: ${name}
+კოდი: ${code}
+მისამართი: ${address}
+ტელეფონის ნომერი: ${phone}
+ახალი კლიენტია?: ${isNew}
+რას ვითხოვთ?: ${requestText}
+ვადა: ${deadline}`;
+
+      if (note) {
+        result += `\nშენიშვნა: ${note}`;
+      }
+
+      document.getElementById('output').value = result;
+    }
+
+    function copyText() {
+      const textArea = document.getElementById('output');
+      textArea.select();
+      document.execCommand('copy');
+      alert('ტექსტი დაკოპირდა!');
+    }
+  </script>
+</body>
+</html>
