@@ -1,3 +1,13 @@
+<!--
+------------------------------
+Version: 1.2 Beta - 17.06.2027
+
+Changelog:
+# დაემატა გასუფთავების ფუნქცია
+# დაემატა პროდუქციის არჩევისას რამდენი ლარის პროდუქციაა მაგის ხელით მითითება.
+------------------------------
+-->
+
 <!DOCTYPE html>
 <html lang="ka">
 <head>
@@ -100,6 +110,8 @@
     <h2>ფასდაკლების/ქეშბექის მოთხოვნა</h2>
 
     <form id="infoForm" onsubmit="event.preventDefault(); generateText();">
+      <button type="button" onclick="clearForm()" style="margin-bottom: 10px;">გასუფთავება</button>
+
       <label>დასახელება:</label>
       <input type="text" id="name" required />
 
@@ -130,11 +142,16 @@
       <label>რას ვითხოვთ?:</label>
       <select id="request" required onchange="handleRequestChange()">
         <option value="" disabled selected>აირჩიე მოთხოვნა</option>
-        <option value="250 ლარის პროდუქციის სანაცვლოდ მაცივრის დადგმა">250 ლარის პროდუქციის სანაცვლოდ მაცივრის დადგმა</option>
+        <option value="პროდუქციის სანაცვლოდ მაცივრის დადგმა">პროდუქციის სანაცვლოდ მაცივრის დადგმა</option>
         <option value="ქეშბექი">ქეშბექი</option>
         <option value="ფასდაკლება">ფასდაკლება</option>
         <option value="სხვა">სხვა</option>
       </select>
+
+      <div id="productValueField" class="hidden">
+        <label>რამდენი ლარის პროდუქციაა?</label>
+        <input type="number" id="productValue" min="1" />
+      </div>
 
       <div id="percentField" class="hidden">
         <label>რამდენი პროცენტი?:</label>
@@ -210,15 +227,20 @@
       const request = document.getElementById('request').value;
       const percentField = document.getElementById('percentField');
       const otherField = document.getElementById('otherInfoField');
+      const productValueField = document.getElementById('productValueField');
 
       percentField.classList.add('hidden');
       otherField.classList.add('hidden');
+      productValueField.classList.add('hidden');
 
       if (request === 'ქეშბექი' || request === 'ფასდაკლება') {
         percentField.classList.remove('hidden');
       }
       if (request === 'სხვა') {
         otherField.classList.remove('hidden');
+      }
+      if (request === 'პროდუქციის სანაცვლოდ მაცივრის დადგმა') {
+        productValueField.classList.remove('hidden');
       }
     }
 
@@ -231,6 +253,7 @@
       const request = document.getElementById('request').value;
       const percent = document.getElementById('percent').value.trim();
       const otherInfo = document.getElementById('otherInfo').value.trim();
+      const productValue = document.getElementById('productValue').value.trim();
       const deadline = document.getElementById('deadline').value;
       const note = document.getElementById('note').value.trim();
 
@@ -250,6 +273,9 @@
       }
       if (request === "სხვა" && otherInfo) {
         requestText += ` - ${otherInfo}`;
+      }
+      if (request === "პროდუქციის სანაცვლოდ მაცივრის დადგმა" && productValue) {
+        requestText += `\nპროდუქციის ღირებულება: ${productValue} ლარი`;
       }
 
       let result = `დასახელება: ${name}
@@ -272,6 +298,13 @@
       textArea.select();
       document.execCommand('copy');
       alert('ტექსტი დაკოპირდა!');
+    }
+
+    function clearForm() {
+      document.getElementById('infoForm').reset();
+      document.getElementById('output').value = '';
+      handleRequestChange();
+      alert('გასუფთავდა!');
     }
   </script>
 </body>
