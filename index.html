@@ -1,10 +1,11 @@
 <!--
 ------------------------------
-Version: 1.2 Beta - 17.06.2027
+Version: 1.3 Beta
+date: 21.06.2027
 
 Changelog:
-# დაემატა გასუფთავების ფუნქცია
-# დაემატა პროდუქციის არჩევისას რამდენი ლარის პროდუქციაა მაგის ხელით მითითება.
+# დაემატა მოთხოვნა "კრედიტ-ლიმიტი"
+# დამატებითი ველები კრედიტ-ლიმიტისთვის: თანხა, ვადა, და საჭიროების შემთხვევაში კონკრეტული რიცხვი
 ------------------------------
 -->
 
@@ -15,17 +16,13 @@ Changelog:
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ფასდაკლების/ქეშბექის მოთხოვნა</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       font-family: sans-serif;
       margin: 0;
       padding: 0;
       background-color: #f8f9fa;
     }
-
     .container {
       max-width: 600px;
       margin: 30px auto;
@@ -34,19 +31,16 @@ Changelog:
       border-radius: 12px;
       box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     }
-
     h2 {
       text-align: center;
       color: #333;
     }
-
     label {
       display: block;
       margin-top: 15px;
       font-weight: bold;
       color: #333;
     }
-
     input, select, textarea {
       width: 100%;
       padding: 10px;
@@ -55,7 +49,6 @@ Changelog:
       border-radius: 8px;
       font-size: 16px;
     }
-
     button {
       margin-top: 20px;
       padding: 12px;
@@ -66,38 +59,19 @@ Changelog:
       cursor: pointer;
       font-size: 16px;
     }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    textarea {
-      height: 140px;
-      resize: vertical;
-    }
-
+    button:hover { background-color: #0056b3; }
+    textarea { height: 140px; resize: vertical; }
     .note {
       font-size: 13px;
       color: #555;
       font-style: italic;
       margin-top: 5px;
     }
-
-    .hidden {
-      display: none;
-    }
-
+    .hidden { display: none; }
     @media (max-width: 600px) {
-      .container {
-        margin: 10px;
-        padding: 15px;
-      }
-
-      input, select, textarea, button {
-        font-size: 15px;
-      }
+      .container { margin: 10px; padding: 15px; }
+      input, select, textarea, button { font-size: 15px; }
     }
-
     .radio-group label {
       display: inline-block;
       margin-right: 15px;
@@ -108,7 +82,6 @@ Changelog:
 <body>
   <div class="container">
     <h2>ფასდაკლების/ქეშბექის მოთხოვნა</h2>
-
     <form id="infoForm" onsubmit="event.preventDefault(); generateText();">
       <button type="button" onclick="clearForm()" style="margin-bottom: 10px;">გასუფთავება</button>
 
@@ -128,14 +101,8 @@ Changelog:
 
       <label>ახალი კლიენტია?</label>
       <div class="radio-group">
-        <label>
-          <input type="radio" name="isNewClient" value="დიახ" required />
-          დიახ
-        </label>
-        <label>
-          <input type="radio" name="isNewClient" value="არა" />
-          არა
-        </label>
+        <label><input type="radio" name="isNewClient" value="დიახ" required /> დიახ</label>
+        <label><input type="radio" name="isNewClient" value="არა" /> არა</label>
         <div class="note">(კლიენტები რომლებიც 2 თვეზე ნაკლებია რაც ჩავსვით)</div>
       </div>
 
@@ -145,6 +112,7 @@ Changelog:
         <option value="პროდუქციის სანაცვლოდ მაცივრის დადგმა">პროდუქციის სანაცვლოდ მაცივრის დადგმა</option>
         <option value="ქეშბექი">ქეშბექი</option>
         <option value="ფასდაკლება">ფასდაკლება</option>
+        <option value="კრედიტ-ლიმიტი">კრედიტ-ლიმიტი</option>
         <option value="სხვა">სხვა</option>
       </select>
 
@@ -156,6 +124,25 @@ Changelog:
       <div id="percentField" class="hidden">
         <label>რამდენი პროცენტი?:</label>
         <input type="number" id="percent" min="1" max="100" />
+      </div>
+
+      <div id="creditLimitFields" class="hidden">
+        <label>რამდენი ლარის კრედიტ-ლიმიტი?</label>
+        <input type="number" id="creditLimitAmount" min="1" />
+
+        <label>კრედიტ ლიმიტის ვადა:</label>
+        <select id="creditTerm">
+          <option value="" disabled selected>აირჩიე ვადა</option>
+          <option value="14 დღე">14 დღე</option>
+          <option value="21 დღე">21 დღე</option>
+          <option value="30 დღე - თვის ბოლოს">30 დღე - თვის ბოლოს</option>
+          <option value="კონკრეტული რიცხვი">კონკრეტული რიცხვი</option>
+        </select>
+
+        <div id="specificDateField" class="hidden">
+          <label>რიცხვი:</label>
+          <input type="text" id="specificDate" placeholder="მაგ: 2025-07-10" />
+        </div>
       </div>
 
       <div id="otherInfoField" class="hidden">
@@ -189,60 +176,38 @@ Changelog:
       const codeInput = document.getElementById("code");
       const errorDiv = document.getElementById("codeError");
       codeInput.value = codeInput.value.replace(/[^0-9]/g, '');
-
-      const length = codeInput.value.length;
-
-      if (length === 0) {
-        errorDiv.style.display = "none";
-        return;
-      }
-
-      if (length !== 9 && length !== 11) {
-        errorDiv.textContent = "თუ შპს-ა, შეიყვანე 9 ციფრი, თუ ინდ. მეწარმეა — 11 ციფრი";
-        errorDiv.style.display = "block";
-      } else {
-        errorDiv.style.display = "none";
-      }
+      errorDiv.style.display = (codeInput.value.length !== 9 && codeInput.value.length !== 11) ? "block" : "none";
     }
 
     function validatePhone() {
       const phoneInput = document.getElementById("phone");
       const phoneError = document.getElementById("phoneError");
       phoneInput.value = phoneInput.value.replace(/[^0-9]/g, '');
-
-      if (phoneInput.value.length === 0) {
-        phoneError.style.display = "none";
-        return;
-      }
-
-      if (phoneInput.value.length !== 9) {
-        phoneError.textContent = "ტელეფონის ნომერი აუცილებლად უნდა იყოს 9 ციფრი, მაგ.: 595123456";
-        phoneError.style.display = "block";
-      } else {
-        phoneError.style.display = "none";
-      }
+      phoneError.style.display = (phoneInput.value.length !== 9) ? "block" : "none";
     }
 
     function handleRequestChange() {
       const request = document.getElementById('request').value;
-      const percentField = document.getElementById('percentField');
-      const otherField = document.getElementById('otherInfoField');
-      const productValueField = document.getElementById('productValueField');
-
-      percentField.classList.add('hidden');
-      otherField.classList.add('hidden');
-      productValueField.classList.add('hidden');
+      document.getElementById('percentField').classList.add('hidden');
+      document.getElementById('otherInfoField').classList.add('hidden');
+      document.getElementById('productValueField').classList.add('hidden');
+      document.getElementById('creditLimitFields').classList.add('hidden');
+      document.getElementById('specificDateField').classList.add('hidden');
 
       if (request === 'ქეშბექი' || request === 'ფასდაკლება') {
-        percentField.classList.remove('hidden');
-      }
-      if (request === 'სხვა') {
-        otherField.classList.remove('hidden');
-      }
-      if (request === 'პროდუქციის სანაცვლოდ მაცივრის დადგმა') {
-        productValueField.classList.remove('hidden');
+        document.getElementById('percentField').classList.remove('hidden');
+      } else if (request === 'სხვა') {
+        document.getElementById('otherInfoField').classList.remove('hidden');
+      } else if (request === 'პროდუქციის სანაცვლოდ მაცივრის დადგმა') {
+        document.getElementById('productValueField').classList.remove('hidden');
+      } else if (request === 'კრედიტ-ლიმიტი') {
+        document.getElementById('creditLimitFields').classList.remove('hidden');
       }
     }
+
+    document.getElementById('creditTerm').addEventListener('change', function () {
+      document.getElementById('specificDateField').classList.toggle('hidden', this.value !== 'კონკრეტული რიცხვი');
+    });
 
     function generateText() {
       const name = document.getElementById('name').value.trim();
@@ -254,28 +219,30 @@ Changelog:
       const percent = document.getElementById('percent').value.trim();
       const otherInfo = document.getElementById('otherInfo').value.trim();
       const productValue = document.getElementById('productValue').value.trim();
+      const creditAmount = document.getElementById('creditLimitAmount').value.trim();
+      const creditTerm = document.getElementById('creditTerm').value;
+      const specificDate = document.getElementById('specificDate').value.trim();
       const deadline = document.getElementById('deadline').value;
       const note = document.getElementById('note').value.trim();
 
-      if (code.length !== 9 && code.length !== 11) {
-        alert("შეიყვანე სწორი კოდი: 9 ციფრი შპს-ისთვის ან 11 ინდ. მეწარმისთვის");
-        return;
-      }
-
-      if (phone.length !== 9) {
-        alert("ტელეფონის ნომერი აუცილებლად უნდა იყოს 9 ციფრი, მაგ.: 595123456");
-        return;
-      }
+      if (code.length !== 9 && code.length !== 11) return alert("კოდი არასწორია");
+      if (phone.length !== 9) return alert("ტელეფონის ნომერი არასწორია");
 
       let requestText = request;
       if ((request === "ქეშბექი" || request === "ფასდაკლება") && percent) {
         requestText += ` (${percent}%)`;
-      }
-      if (request === "სხვა" && otherInfo) {
+      } else if (request === "სხვა" && otherInfo) {
         requestText += ` - ${otherInfo}`;
-      }
-      if (request === "პროდუქციის სანაცვლოდ მაცივრის დადგმა" && productValue) {
+      } else if (request === "პროდუქციის სანაცვლოდ მაცივრის დადგმა" && productValue) {
         requestText += `\nპროდუქციის ღირებულება: ${productValue} ლარი`;
+      } else if (request === "კრედიტ-ლიმიტი") {
+        if (creditAmount) requestText += `\nკრედიტ-ლიმიტი: ${creditAmount} ლარი`;
+        if (creditTerm) {
+          requestText += `\nკრედიტის ვადა: ${creditTerm}`;
+          if (creditTerm === "კონკრეტული რიცხვი" && specificDate) {
+            requestText += `\nრიცხვი: ${specificDate}`;
+          }
+        }
       }
 
       let result = `დასახელება: ${name}
@@ -286,10 +253,7 @@ Changelog:
 რას ვითხოვთ?: ${requestText}
 ვადა: ${deadline}`;
 
-      if (note) {
-        result += `\nშენიშვნა: ${note}`;
-      }
-
+      if (note) result += `\nშენიშვნა: ${note}`;
       document.getElementById('output').value = result;
     }
 
